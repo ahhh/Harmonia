@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Harmonia">
+<meta name="description" content="A relaxation instrument: never-ending chord progressions walked around Coltrane’s circle of fifths, binaural beats, guided breath and colors that move in harmony with the music.">
+<title>Harmonia</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%23e2ab95' stroke-width='2'/%3E%3Cpath d='M32 10 51 43 13 43Z' fill='none' stroke='%23ffa066' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;1,300&display=swap">
+<style>
+:root {
+  --ink: #f4e9df;
+  --ash: rgba(244, 233, 223, 0.58);
+  --faint: rgba(244, 233, 223, 0.16);
+  --sheet: rgba(8, 5, 6, 0.46);
+  --accent: #ffb48a;
+  --serif: 'Spectral', 'Iowan Old Style', Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  --gutter: 16px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0;
+  background: #000;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+[hidden] { display: none !important; }
+
+#field {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
+  z-index: 0;
+  display: block;
+}
+
+.app {
+  position: relative; z-index: 1;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: env(safe-area-inset-top) var(--gutter) calc(84px + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+/* header */
+.top { display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0 0; }
+.name { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 28px; margin: 0; letter-spacing: .01em; }
+.text-btn { color: var(--ash); padding: 10px 2px; min-height: 44px; }
+.text-btn:hover, .text-btn:active { color: var(--ink); }
+
+/* stage */
+.stage { position: relative; width: min(100%, 44vh, 440px); aspect-ratio: 1; margin: 0 auto; }
+.stage canvas { width: 100%; height: 100%; display: block; }
+.stage-play {
+  position: absolute; inset: 36%;
+  border-radius: 50%;
+  display: grid; place-items: center;
+}
+.stage-play svg { width: 40%; height: 40%; fill: var(--ink); filter: drop-shadow(0 0 14px rgba(255, 200, 160, .55)); transition: opacity .6s; }
+.stage-play.on svg { opacity: 0; }
+
+/* now playing */
+.now { text-align: center; min-height: 86px; margin-top: 2px; }
+.now-key { font-family: var(--serif); font-size: 21px; font-weight: 300; }
+.now-key i { color: var(--ash); }
+.now-roman { margin-top: 4px; font-size: 14px; color: var(--ash); letter-spacing: .02em; }
+.now-roman span { transition: color 1.2s, text-shadow 1.2s; padding: 0 1px; }
+.now-roman span.cur { color: var(--ink); text-shadow: 0 0 12px rgba(255, 220, 190, .8); }
+.now-song { margin-top: 2px; font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--ash); }
+
+/* chips */
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; }
+.chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 2px; border-radius: 12px;
+  background: var(--sheet);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  min-height: 56px;
+}
+.chip-v { font-family: var(--serif); font-size: 17px; line-height: 1.2; }
+.chip-l { font-size: 12px; color: var(--ash); }
+
+/* transport */
+.transport { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 14px 0 8px; }
+.play {
+  justify-self: start;
+  min-width: 112px; min-height: 48px; padding: 0 22px;
+  border-radius: 999px;
+  background: rgba(255, 240, 228, .9); color: #1a0e0a;
+  font-weight: 500;
+  box-shadow: 0 0 28px rgba(255, 190, 150, .25);
+}
+.play[aria-pressed="true"] { background: var(--sheet); color: var(--ink); box-shadow: inset 0 0 0 1px var(--faint); }
+.clock { font-variant-numeric: tabular-nums; color: var(--ash); font-size: 14px; text-align: center; }
+#immerseBtn { justify-self: end; }
+
+/* panel */
+.panel {
+  background: var(--sheet);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-radius: 18px;
+  padding: 6px 16px 14px;
+}
+.panel h2 { font-family: var(--serif); font-weight: 300; font-size: 21px; margin: 10px 0 2px; }
+.note { font-size: 13px; color: var(--ash); margin: 6px 0 4px; }
+.row { display: grid; grid-template-columns: 112px 1fr 52px; align-items: center; gap: 10px; min-height: 46px; }
+.row.wide { grid-template-columns: 112px 1fr; }
+.row-l { font-size: 14px; color: var(--ash); }
+.row-v { font-size: 13px; color: var(--ash); text-align: right; font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; margin: 0; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button {
+  padding: 6px 10px; min-height: 34px; border-radius: 999px;
+  font-size: 13px; color: var(--ash);
+  box-shadow: inset 0 0 0 1px var(--faint);
+}
+.seg button[aria-pressed="true"] { color: #1a0e0a; background: rgba(255, 240, 228, .88); box-shadow: none; }
+.pool { list-style: none; margin: 6px 0 0; padding: 0; }
+.pool label { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; padding: 7px 0; border-top: 1px solid var(--faint); cursor: pointer; }
+.pool input { margin: 3px 0 0; accent-color: var(--accent); width: 16px; height: 16px; }
+.pool b { font-weight: 400; font-size: 14px; }
+.pool small { display: block; color: var(--ash); font-size: 12px; }
+.swatches { display: flex; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
+.sw { flex: 1 1 60px; border-radius: 12px; height: 54px; position: relative; transition: background 1.5s; }
+.sw span { position: absolute; left: 8px; bottom: 6px; font-size: 11px; color: rgba(0, 0, 0, .7); font-weight: 500; }
+.share { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 13px; color: var(--ash); }
+.share button { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; padding: 8px 0; }
+
+/* tabs */
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  max-width: 560px; margin: 0 auto;
+  padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0, 0, 0, .78), rgba(0, 0, 0, .5));
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+}
+.tab { min-height: 48px; font-size: 13px; color: var(--ash); border-radius: 10px; }
+.tab[aria-selected="true"] { color: var(--ink); background: rgba(255, 255, 255, .07); }
+
+/* immersive mode */
+.immerse { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; cursor: none; }
+.immerse canvas { width: min(92vw, 92vh); height: min(92vw, 92vh); display: block; }
+.imm-hint { position: absolute; top: calc(18px + env(safe-area-inset-top)); left: 0; right: 0; text-align: center; font-size: 13px; color: var(--ash); transition: opacity 1s; }
+body.immersed .app, body.immersed .tabs { visibility: hidden; }
+
+.overlay { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(0, 0, 0, .7); text-align: center; padding: 24px; }
+.overlay button { padding: 14px 26px; border-radius: 999px; background: rgba(255, 240, 228, .92); color: #1a0e0a; font-weight: 500; }
+.overlay p { color: var(--ash); font-size: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .now-roman span, .sw { transition: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="field" aria-hidden="true"></canvas>
+
+<div class="app" id="app">
+  <header class="top">
+    <h1 class="name">Harmonia</h1>
+    <button class="text-btn" id="newBtn">New journey</button>
+  </header>
+
+  <section class="stage" aria-label="Circle view">
+    <canvas id="wheel" role="img" aria-label="The current chord progression drawn as a figure on the circle of fifths"></canvas>
+    <button id="stagePlay" class="stage-play" aria-label="Play">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg>
+    </button>
+  </section>
+
+  <section class="now" aria-live="polite">
+    <div class="now-key" id="nowKey"></div>
+    <div class="now-roman" id="nowRoman"></div>
+    <div class="now-song" id="nowSong"></div>
+  </section>
+
+  <div class="chips" id="chips">
+    <button class="chip" data-chip="cycle"><span class="chip-v" id="c-cycle"></span><span class="chip-l">per chord</span></button>
+    <button class="chip" data-chip="beats"><span class="chip-v" id="c-beats"></span><span class="chip-l">beats</span></button>
+    <button class="chip" data-chip="breath"><span class="chip-v" id="c-breath"></span><span class="chip-l">breath</span></button>
+    <button class="chip" data-chip="colors"><span class="chip-v" id="c-colors"></span><span class="chip-l">colors</span></button>
+  </div>
+
+  <section class="transport">
+    <button id="playBtn" class="play" aria-pressed="false">Play</button>
+    <div class="clock" id="clock"></div>
+    <button id="immerseBtn" class="text-btn">Immerse</button>
+  </section>
+
+  <main class="panel" id="panel"></main>
+</div>
+
+<nav class="tabs" role="tablist" id="tabs">
+  <button class="tab" role="tab" data-tab="journey">Journey</button>
+  <button class="tab" role="tab" data-tab="sound">Sound</button>
+  <button class="tab" role="tab" data-tab="beats">Beats</button>
+  <button class="tab" role="tab" data-tab="noise">Noise</button>
+  <button class="tab" role="tab" data-tab="color">Color</button>
+  <button class="tab" role="tab" data-tab="sleep">Sleep</button>
+</nav>
+
+<div class="immerse" id="immerse" hidden>
+  <canvas id="immWheel" aria-hidden="true"></canvas>
+  <div class="imm-hint" id="immHint">Double-tap or press Esc to return</div>
+</div>
+
+<div class="overlay" id="resume" hidden>
+  <div>
+    <button id="resumeBtn">Tap to resume</button>
+    <p>The browser paused the sound when the page left the screen.</p>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   Helpers
+   ========================================================= */
+const TAU = Math.PI * 2;
+const mod = (n, m = 12) => ((n % m) + m) % m;
+const norm = a => ((a % 360) + 360) % 360;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const $ = id => document.getElementById(id);
+const ease = x => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x, 0, 1));
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function weighted(rng, items, w) {
+  const total = items.reduce((s, x) => s + w(x), 0);
+  let r = rng() * total;
+  for (const x of items) { r -= w(x); if (r <= 0) return x; }
+  return items[items.length - 1];
+}
+
+/* =========================================================
+   Music data
+   Progressions come from The Coltrane Circle (../circle_progression).
+   pat = degree:family relative to the tonic (M major, m minor, 7 dominant, d diminished)
+   w   = how often the journey picks it (calmer patterns weigh more)
+   ========================================================= */
+const NOTE = ['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
+const fIdx = pc => mod(pc * 7);   // pitch class -> position on the circle of fifths
+
+const QUAL = {
+  M:    { sym: '',     iv: [0, 4, 7] },
+  maj7: { sym: 'maj7', iv: [0, 4, 7, 11] },
+  add9: { sym: 'add9', iv: [0, 4, 7, 14] },
+  m:    { sym: 'm',    iv: [0, 3, 7] },
+  m7:   { sym: 'm7',   iv: [0, 3, 7, 10] },
+  '7':  { sym: '7',    iv: [0, 4, 7, 10] },
+  dim:  { sym: '°',    iv: [0, 3, 6] },
+  m7b5: { sym: 'ø7',   iv: [0, 3, 6, 10] },
+};
+
+const PROGRESSIONS = [
+  { id:'axis',       name:'The “Axis” progression',      roman:'I – V – vi – IV',            pat:'0:M 7:M 9:m 5:M',                 w:1,   on:true,  song:'“Let It Be” — The Beatles' },
+  { id:'axis-min',   name:'Axis, minor-first',           roman:'vi – IV – I – V',            pat:'9:m 5:M 0:M 7:M',                 w:1,   on:true,  song:'“Zombie” — The Cranberries' },
+  { id:'doowop',     name:'’50s doo-wop',                roman:'I – vi – IV – V',            pat:'0:M 9:m 5:M 7:M',                 w:0.8, on:true,  song:'“Stand By Me” — Ben E. King' },
+  { id:'turnaround', name:'Turnaround',                  roman:'I – vi – ii – V',            pat:'0:M 9:m 2:m 7:M',                 w:1,   on:true,  song:'“Blue Moon” — Rodgers & Hart' },
+  { id:'251',        name:'ii – V – I',                  roman:'ii – V – I',                 pat:'2:m 7:M 0:M',                     w:1.2, on:true,  song:'“Autumn Leaves” — Kosma / Mercer' },
+  { id:'rock',       name:'Three-chord rock',            roman:'I – IV – V',                 pat:'0:M 5:M 7:M',                     w:0.4, on:false, song:'“La Bamba” — Ritchie Valens' },
+  { id:'mixo',       name:'Mixolydian ♭VII',             roman:'I – ♭VII – IV',              pat:'0:M 10:M 5:M',                    w:0.6, on:true,  song:'“Hey Jude” (coda) — The Beatles' },
+  { id:'andalusian', name:'Andalusian cadence',          roman:'i – ♭VII – ♭VI – V',         pat:'0:m 10:M 8:M 7:M',                w:0.7, on:true,  song:'“Walk, Don’t Run” — The Ventures' },
+  { id:'aeolian',    name:'Aeolian descent',             roman:'i – ♭VII – ♭VI',             pat:'0:m 10:M 8:M',                    w:1,   on:true,  song:'“Stairway to Heaven” (finale) — Led Zeppelin' },
+  { id:'creep',      name:'Major III & borrowed iv',     roman:'I – III – IV – iv',          pat:'0:M 4:M 5:M 5:m',                 w:0.6, on:true,  song:'“Creep” — Radiohead' },
+  { id:'pachelbel',  name:'Pachelbel’s Canon',           roman:'I – V – vi – iii – IV – I – IV – V', pat:'0:M 7:M 9:m 4:m 5:M 0:M 5:M 7:M', w:1.3, on:true, song:'Canon in D — Johann Pachelbel' },
+  { id:'twoofus',    name:'“Just the Two of Us” changes',roman:'IVmaj7 – III7 – vi7 – v7 – I7', pat:'5:M 4:7 9:m 7:m 0:7',          w:1,   on:true,  song:'Grover Washington Jr. & Bill Withers' },
+  { id:'royal',      name:'Royal Road',                  roman:'IV – V – iii – vi',          pat:'5:M 7:M 4:m 9:m',                 w:1.2, on:true,  song:'A staple of J-pop and anime themes' },
+  { id:'coltrane',   name:'Coltrane changes',            roman:'I – ♭III7 – ♭VI – VII7 – III', pat:'0:M 3:7 8:M 11:7 4:M',          w:0.7, on:true,  song:'“Giant Steps” — John Coltrane' },
+  { id:'chain',      name:'Circle-of-fifths chain',      roman:'vi – ii – V – I – IV – viiø – III – vi', pat:'9:m 2:m 7:7 0:M 5:M 11:d 4:7 9:m', w:1.2, on:true, song:'“Fly Me to the Moon” — Bart Howard' },
+  { id:'blues',      name:'12-bar blues (condensed)',    roman:'I7 – IV7 – I7 – V7 – IV7 – I7', pat:'0:7 5:7 0:7 7:7 5:7 0:7',      w:0.3, on:false, song:'“Sweet Home Chicago” — Robert Johnson' },
+  { id:'tritone',    name:'Tritone-sub turnaround',      roman:'Imaj7 – II7 – ii7 – ♭II7 – Imaj7', pat:'0:M 2:7 2:m 1:7 0:M',       w:0.8, on:true,  song:'“The Girl from Ipanema” — A. C. Jobim' },
+  { id:'mario',      name:'Mario cadence',               roman:'♭VI – ♭VII – I',             pat:'8:M 10:M 0:M',                    w:0.8, on:true,  song:'Many film-score climaxes' },
+].map(p => {
+  const q = p.pat.split(' ').map(t => { const [d, f] = t.split(':'); return { d: +d, f }; });
+  return { ...p, q, minor: q[0].d === 0 && q[0].f === 'm', romans: p.roman.split(' – ') };
+});
+
+/* Color harmonies from Color Wheel Studio (../color-wheel). Offsets in degrees from the chord root's hue.
+   "Chord tones" maps every note of the chord onto the wheel, so a major chord becomes the
+   wheel's own "Major Chord" harmony. */
+const HARMONIES = {
+  chord:     { name: 'Chord tones',         short: 'Chord',    offsets: null },
+  narrow:    { name: 'Narrow Analogous',    short: 'Narrow',   offsets: [-15, 0, 15] },
+  analogous: { name: 'Analogous',           short: 'Analog',   offsets: [-30, 0, 30] },
+  split:     { name: 'Split Complementary', short: 'Split',    offsets: [0, 150, 210] },
+  triadic:   { name: 'Triadic',             short: 'Triad',    offsets: [0, 120, 240] },
+  golden:    { name: 'Golden Angle',        short: 'Golden',   offsets: [0, 137.508, 275.016] },
+  fifth:     { name: 'Perfect Fifth',       short: 'Fifth',    offsets: [0, 210] },
+  whole:     { name: 'Whole-Tone',          short: 'Whole',    offsets: [0, 60, 120, 180, 240, 300] },
+};
+const COLOR_NAMES = ['Red','Vermilion','Orange','Amber','Gold','Yellow','Chartreuse','Lime','Green','Emerald','Jade','Teal',
+  'Aqua','Cyan','Azure','Cerulean','Blue','Indigo','Violet','Purple','Magenta','Fuchsia','Rose','Crimson'];
+const colorName = h => COLOR_NAMES[Math.floor(norm(h) / 15) % 24];
+
+/* Breath patterns: [in, hold, out, rest] seconds. */
+const BREATH = {
+  off:      { name: 'Off',       p: [5, 1, 7, 2] },   // still drives a soft visual tide, but no guide or swell
+  coherent: { name: 'Coherent',  p: [5.5, 0, 5.5, 0] },
+  box:      { name: 'Box',       p: [4, 4, 4, 4] },
+  '478':    { name: '4 · 7 · 8', p: [4, 7, 8, 0] },
+};
+const BREATH_WORDS = ['breathe in', 'hold', 'breathe out', 'rest'];
+
+const BEAT_STATES = {
+  delta:    { name: 'Delta',    sym: 'δ', hz: 2.5,  tip: 'deep, dreamless sleep' },
+  theta:    { name: 'Theta',    sym: 'θ', hz: 5.5,  tip: 'drowsy, meditative, dreamlike' },
+  schumann: { name: 'Schumann', sym: '◎', hz: 7.83, tip: 'the Earth’s resonance' },
+  alpha:    { name: 'Alpha',    sym: 'α', hz: 10,   tip: 'calm and awake' },
+};
+
+/* =========================================================
+   Settings
+   ========================================================= */
+const DEFAULTS = {
+  tab: 'journey',
+  cycle: 10, rich: true, wander: 'coltrane', tuning: 432,
+  pool: Object.fromEntries(PROGRESSIONS.map(p => [p.id, p.on])),
+  drone: { vol: 0.7, bass: 0.45, bright: 0.45 },
+  pulse: { vol: 0.35, density: 0.35 },
+  space: 0.55,
+  beats: { vol: 0.5, state: 'theta', hz: 5.5, descend: false, carrier: 'chord' },
+  noise: { vol: 0.25, type: 'ocean' },
+  color: { harmony: 'chord', map: 'fifths', shift: 0, sat: 55, glow: 0.6 },
+  breath: { pattern: 'coherent', depth: 0.5 },
+  sleep: { timer: 0, warmth: 0.45 },
+};
+const STORE_KEY = 'harmonia.v1';
+function deepMerge(base, over) {
+  const out = Array.isArray(base) ? base.slice() : { ...base };
+  if (!over || typeof over !== 'object') return out;
+  for (const k of Object.keys(base)) {
+    if (!(k in over)) continue;
+    out[k] = base[k] && typeof base[k] === 'object' ? deepMerge(base[k], over[k]) : over[k];
+  }
+  return out;
+}
+let S = DEFAULTS;
+try { S = deepMerge(DEFAULTS, JSON.parse(localStorage.getItem(STORE_KEY) || 'null')); } catch (e) { S = deepMerge(DEFAULTS, null); }
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* private mode */ } }
+const getPath = p => p.split('.').reduce((o, k) => o[k], S);
+function setPath(p, v) { const ks = p.split('.'); const last = ks.pop(); ks.reduce((o, k) => o[k], S)[last] = v; }
+
+/* =========================================================
+   Journey: a seeded, never-ending walk through the progressions.
+   Each progression repeats 2–3 times, then the key steps around the circle
+   (a fifth, or a Coltrane major third) and a new progression begins.
+   ========================================================= */
+class Journey {
+  constructor(seed) {
+    this.seed = seed;
+    this.rng = mulberry32(seed);
+    this.home = Math.floor(this.rng() * 12);   // major key signature the journey is in
+    this.prog = null; this.idx = 0; this.pass = 0; this.passes = 2;
+  }
+  pool() {
+    const p = PROGRESSIONS.filter(x => S.pool[x.id]);
+    return p.length ? p : PROGRESSIONS.filter(x => x.id === 'pachelbel');
+  }
+  pick() {
+    let pool = this.pool();
+    if (pool.length > 1 && this.prog) pool = pool.filter(x => x !== this.prog);
+    return weighted(this.rng, pool, x => x.w);
+  }
+  modulate() {
+    if (S.wander === 'stay') return;
+    const c = S.wander === 'coltrane' ? 1 : 0;
+    const steps = [[0, 3], [7, 1.6], [5, 1.6], [4, 1.1 * c], [8, 1.1 * c], [3, 0.25], [9, 0.25]];
+    this.home = mod(this.home + weighted(this.rng, steps, s => s[1])[0]);
+  }
+  ensure() {
+    if (this.prog) return;
+    this.prog = this.pick();
+    this.passes = 2 + (this.rng() < 0.4 ? 1 : 0);
+  }
+  advance() {
+    if (!this.prog) this.ensure();
+    else if (this.pass + 1 < this.passes) this.pass++;
+    else {
+      this.modulate();
+      this.prog = this.pick();
+      this.pass = 0;
+      this.passes = 2 + (this.rng() < 0.4 ? 1 : 0);
+    }
+    this.idx = 0;
+  }
+  tonic() { return this.prog && this.prog.minor ? mod(this.home + 9) : this.home; }
+  next() {
+    if (!this.prog || this.idx >= this.prog.q.length) this.advance();
+    const p = this.prog, tok = p.q[this.idx], tonic = this.tonic();
+    const ev = {
+      root: mod(tonic + tok.d), q: realize(tok), prog: p, idx: this.idx,
+      pass: this.pass, tonic, fresh: this.idx === 0 && this.pass === 0,
+      isLast: this.idx === p.q.length - 1,
+    };
+    this.idx++;
+    return ev;
+  }
+  preview() {
+    this.ensure();
+    const p = this.prog, i = Math.min(this.idx, p.q.length - 1), tok = p.q[i];
+    return { root: mod(this.tonic() + tok.d), q: realize(tok), prog: p, idx: i, tonic: this.tonic() };
+  }
+}
+function realize(tok) {
+  if (S.rich) return { M: tok.d === 7 ? 'add9' : 'maj7', m: 'm7', '7': '7', d: 'm7b5' }[tok.f];
+  return { M: 'M', m: 'm', '7': '7', d: 'dim' }[tok.f];
+}
+const chordPcs = ev => QUAL[ev.q].iv.map(i => mod(ev.root + i));
+const chordName = ev => NOTE[ev.root] + QUAL[ev.q].sym;
+const keyName = ev => `${NOTE[ev.tonic]} ${ev.prog.minor ? 'minor' : 'major'}`;
+
+// Smooth voice leading: each chord tone takes the octave closest to a note already sounding.
+function voiceChord(ev, prev) {
+  const out = [];
+  for (const i of QUAL[ev.q].iv) {
+    const pc = mod(ev.root + i);
+    let best = null, bd = Infinity;
+    for (let m = 50; m <= 70; m++) {
+      if (mod(m) !== pc) continue;
+      const d = prev && prev.length ? Math.min(...prev.map(p => Math.abs(p - m))) : Math.abs(m - 57);
+      if (d < bd) { bd = d; best = m; }
+    }
+    out.push(best);
+  }
+  return [...new Set(out)].sort((a, b) => a - b);
+}
+const hz = m => S.tuning * Math.pow(2, (m - 69) / 12);
+
+/* =========================================================
+   Color model — pitch class -> hue
+   ========================================================= */
+const wheelPos = pc => (S.color.map === 'fifths' ? fIdx(pc) : pc);
+const hueOf = pc => norm(wheelPos(pc) * 30 + S.color.shift);
+function paletteFor(ev) {
+  const h = HARMONIES[S.color.harmony] || HARMONIES.chord;
+  if (!h.offsets) return chordPcs(ev).map(hueOf);
+  const base = hueOf(ev.root);
+  return h.offsets.map(o => norm(base + o));
+}
+
+/* =========================================================
+   Audio engine (Web Audio, scheduled on the audio clock)
+   ========================================================= */
+const LOOKAHEAD = 2.5;
+
+function makeNoiseBuffer(ctx, type) {
+  const sr = ctx.sampleRate, L = Math.round(sr * 12), F = sr, rand = mulberry32(type === 'pink' ? 11 : 7);
+  const buf = ctx.createBuffer(2, L, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const raw = new Float32Array(L + F);
+    if (type === 'pink') {
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < raw.length; i++) {
+        const w = rand() * 2 - 1;
+        b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759;
+        b2 = 0.969 * b2 + w * 0.153852;    b3 = 0.8665 * b3 + w * 0.3104856;
+        b4 = 0.55 * b4 + w * 0.5329522;    b5 = -0.7616 * b5 - w * 0.016898;
+        raw[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362; b6 = w * 0.115926;
+      }
+    } else {
+      let b = 0;
+      for (let i = 0; i < raw.length; i++) { b = (b + 0.02 * (rand() * 2 - 1)) / 1.02; raw[i] = b; }
+    }
+    let ss = 0;
+    for (let i = 0; i < raw.length; i++) ss += raw[i] * raw[i];
+    const g = 0.12 / Math.sqrt(ss / raw.length || 1);
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < L; i++) {
+      // crossfade the tail into the head so the loop is seamless
+      d[i] = (i < F ? raw[i] * Math.sqrt(i / F) + raw[L + i] * Math.sqrt(1 - i / F) : raw[i]) * g;
+    }
+  }
+  return buf;
+}
+function makeIR(ctx, seconds = 4.5) {
+  const sr = ctx.sampleRate, pre = Math.round(sr * 0.02), L = Math.round(sr * seconds), rand = mulberry32(3);
+  const buf = ctx.createBuffer(2, pre + L, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < L; i++) {
+      const t = i / sr, coeff = 0.08 + 0.85 * Math.min(1, t / seconds);
+      lp += (rand() * 2 - 1 - lp) * (1 - coeff);
+      d[pre + i] = lp * Math.exp((-6.9 * t) / seconds) * Math.min(1, i / (sr * 0.004));
+    }
+  }
+  return buf;
+}
+const warmthHz = w => 700 * Math.pow(18000 / 700, w);
+const brightHz = b => 400 * Math.pow(3200 / 400, b);
+
+class Engine {
+  constructor() { this.ctx = null; this.playing = false; this.events = []; this.breaths = []; }
+
+  start(journey) {
+    if (navigator.audioSession) { try { navigator.audioSession.type = 'playback'; } catch (e) { /* older iOS */ } }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctx = this.ctx = new AC({ latencyHint: 'playback' });
+    ctx.resume && ctx.resume().catch(() => {});
+    ctx.onstatechange = () => ctx === this.ctx && onAudioState(ctx.state);
+    this.journey = journey;
+    this.playing = true;
+    this.fading = false;
+    this.voicing = null;
+    this.events = []; this.breaths = [];
+    const now = ctx.currentTime;
+    this.t0 = now + 0.1;
+    this.nextChord = this.t0;
+    this.nextBreath = this.t0;
+    this.lastPulse = -1;
+
+    const G = (v = 1) => { const g = ctx.createGain(); g.gain.value = v; return g; };
+    this.G = G;
+
+    // master: sum -> warmth -> limiter -> out
+    this.masterSum = G(1);
+    this.warmth = ctx.createBiquadFilter(); this.warmth.type = 'lowpass'; this.warmth.Q.value = 0;
+    this.warmth.frequency.value = warmthHz(S.sleep.warmth);
+    this.limiter = ctx.createDynamicsCompressor();
+    this.limiter.threshold.value = -8; this.limiter.knee.value = 6; this.limiter.ratio.value = 10;
+    this.limiter.attack.value = 0.005; this.limiter.release.value = 0.3;
+    this.out = G(0);
+    this.masterSum.connect(this.warmth); this.warmth.connect(this.limiter);
+    this.limiter.connect(this.out); this.out.connect(ctx.destination);
+    this.out.gain.setValueAtTime(0, now);
+    this.out.gain.linearRampToValueAtTime(1, now + 5);
+
+    // reverb
+    this.reverb = ctx.createConvolver(); this.reverb.buffer = makeIR(ctx);
+    this.wet = G(S.space * 0.9);
+    this.reverb.connect(this.wet); this.wet.connect(this.masterSum);
+
+    // pad: voices -> padIn -> lowpass (slowly sweeping) -> breath swell -> level
+    this.padIn = G(1);
+    this.padLP = ctx.createBiquadFilter(); this.padLP.type = 'lowpass'; this.padLP.Q.value = 0.4;
+    this.padLP.frequency.value = brightHz(S.drone.bright);
+    const sweep = ctx.createOscillator(); sweep.frequency.value = 0.031;
+    const sweepAmt = G(180); sweep.connect(sweepAmt); sweepAmt.connect(this.padLP.frequency); sweep.start(now);
+    this.padBreath = G(1);
+    this.padOut = G(S.drone.vol);
+    this.padIn.connect(this.padLP); this.padLP.connect(this.padBreath); this.padBreath.connect(this.padOut);
+    this.padOut.connect(this.masterSum);
+    const padSend = G(0.45); this.padOut.connect(padSend); padSend.connect(this.reverb);
+
+    this.bassOut = G(S.drone.bass); this.bassOut.connect(this.padBreath);
+
+    // pulse (soft bells)
+    this.pulseOut = G(S.pulse.vol);
+    this.pulseOut.connect(this.masterSum);
+    const pulseSend = G(0.85); this.pulseOut.connect(pulseSend); pulseSend.connect(this.reverb);
+
+    // binaural beats: one sine per ear, merged so the channels never bleed
+    const merger = ctx.createChannelMerger(2);
+    this.beatOut = G(S.beats.vol * 0.16);
+    this.oscL = ctx.createOscillator(); this.oscR = ctx.createOscillator();
+    this.carrier = 136.1;
+    this.oscL.frequency.value = this.carrier;
+    this.oscR.frequency.value = this.carrier + this.beatHz(0);
+    this.oscL.connect(merger, 0, 0); this.oscR.connect(merger, 0, 1);
+    merger.connect(this.beatOut); this.beatOut.connect(this.masterSum);
+    this.oscL.start(now); this.oscR.start(now);
+    this.lastBeat = this.beatHz(0);
+
+    // noise
+    this.noiseLP = ctx.createBiquadFilter(); this.noiseLP.type = 'lowpass';
+    this.noiseBreath = G(1);
+    this.noiseOut = G(S.noise.vol * 1.6);
+    this.noiseLP.connect(this.noiseBreath); this.noiseBreath.connect(this.noiseOut); this.noiseOut.connect(this.masterSum);
+    this.noiseBufs = {};
+    this.setNoise(S.noise.type, now);
+
+    this.timer = setInterval(() => this.tick(), 200);
+    this.tick();
+  }
+
+  elapsed() { return this.ctx ? Math.max(0, this.ctx.currentTime - this.t0) : 0; }
+
+  beatHz(elapsed) {
+    const target = S.beats.hz;
+    if (!S.beats.descend || target >= 10) return target;
+    const D = (S.sleep.timer ? S.sleep.timer * 60 * 0.8 : 20 * 60);
+    return 10 * Math.pow(target / 10, Math.min(1, elapsed / D));
+  }
+
+  setNoise(type, at) {
+    const ctx = this.ctx;
+    if (this.noiseSrc) {
+      const old = this.noiseSrc, og = this.noiseSrcGain;
+      og.gain.setTargetAtTime(0, at, 0.5);
+      old.stop(at + 3);
+    }
+    const buf = this.noiseBufs[type === 'pink' ? 'pink' : 'brown'] ||= makeNoiseBuffer(ctx, type === 'pink' ? 'pink' : 'brown');
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const g = this.G(0); g.gain.setTargetAtTime(1, at, 0.5);
+    src.connect(g); g.connect(this.noiseLP);
+    src.start(at);
+    this.noiseSrc = src; this.noiseSrcGain = g;
+    this.noiseLP.frequency.setTargetAtTime(type === 'pink' ? 2600 : type === 'ocean' ? 900 : 650, at, 0.3);
+  }
+
+  tick() {
+    if (!this.playing) return;
+    const ctx = this.ctx, now = ctx.currentTime;
+    while (this.nextChord < now + LOOKAHEAD) {
+      const ev = this.journey.next();
+      const dur = S.cycle * (ev.isLast && ev.prog.q.length % 2 === 1 ? 2 : 1);
+      this.scheduleChord(ev, this.nextChord, dur);
+      this.nextChord += dur;
+    }
+    while (this.nextBreath < now + LOOKAHEAD) this.nextBreath += this.scheduleBreath(this.nextBreath);
+    const b = this.beatHz(this.elapsed());
+    if (Math.abs(b - this.lastBeat) > 0.01) {
+      this.oscR.frequency.setTargetAtTime(this.carrier + b, now, 1.5);
+      this.lastBeat = b;
+    }
+    // sleep timer: fade over the final minute, then stop
+    if (S.sleep.timer && !this.fading && this.elapsed() >= S.sleep.timer * 60 - 60) {
+      this.fading = true;
+      this.out.gain.cancelScheduledValues(now);
+      this.out.gain.setValueAtTime(this.out.gain.value, now);
+      this.out.gain.linearRampToValueAtTime(0, now + 60);
+      setTimeout(() => { if (this.fading) stopPlayback(); }, 60500);
+    }
+    // forget old events
+    while (this.events.length > 3 && this.events[1].t < now - 30) this.events.shift();
+    while (this.breaths.length > 3 && this.breaths[1].t < now - 60) this.breaths.shift();
+  }
+
+  scheduleChord(ev, t, dur) {
+    const ctx = this.ctx;
+    const voices = voiceChord(ev, this.voicing);
+    this.voicing = voices;
+    ev.t = t; ev.dur = dur; ev.voices = voices;
+    this.events.push(ev);
+
+    const att = Math.min(dur * 0.5, 3.5), rel = Math.min(dur * 0.9, 6);
+    const amp = 0.17 / Math.sqrt(voices.length);
+    for (const m of voices) this.padVoice(hz(m), t, dur, att, rel, amp, this.padIn);
+    let bass = ev.root + 36; while (bass < 36) bass += 12; while (bass > 47) bass -= 12;
+    this.padVoice(hz(bass), t, dur, att, rel, 0.22, this.bassOut, true);
+
+    // binaural carrier follows the chord root (both ears glide together, so the beat stays exact)
+    let cm = ev.root + 48; while (cm < 45) cm += 12; while (cm > 56) cm -= 12;
+    this.carrier = S.beats.carrier === 'om' ? 136.1 : hz(cm);
+    const tc = Math.min(1.8, dur / 4);
+    this.oscL.frequency.setTargetAtTime(this.carrier, t, tc);
+    this.oscR.frequency.setTargetAtTime(this.carrier + this.lastBeat, t, tc);
+
+    if (S.pulse.vol > 0) this.schedulePulse(voices, t, dur);
+  }
+
+  padVoice(f, t, dur, att, rel, amp, dest, pure) {
+    const ctx = this.ctx, g = this.G(0), end = t + dur + rel + 0.3;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(amp, t + att);
+    g.gain.setTargetAtTime(0, t + dur, rel / 4);
+    g.connect(dest);
+    const parts = pure ? [['sine', 1, 1], ['sine', 2, 0.12]] : [['sine', 1, 1], ['triangle', 1.0029, 0.32], ['sine', 2.0011, 0.12]];
+    for (const [type, mult, a] of parts) {
+      const o = ctx.createOscillator(), og = this.G(a);
+      o.type = type; o.frequency.value = f * mult;
+      o.connect(og); og.connect(g);
+      o.start(t); o.stop(end);
+    }
+    setTimeout(() => g.disconnect(), (end - ctx.currentTime + 0.5) * 1000);
+  }
+
+  schedulePulse(voices, t, dur) {
+    const ctx = this.ctx;
+    const n = Math.max(1, Math.round(1 + S.pulse.density * 7 * dur / 10));
+    const notes = voices.map(m => m + 12);
+    for (let i = 0; i < n; i++) {
+      if (i > 0 && Math.random() < 0.25) continue;                  // leave space
+      let k; do { k = Math.floor(Math.random() * notes.length); } while (notes.length > 1 && k === this.lastPulse);
+      this.lastPulse = k;
+      const at = t + (i + 0.2 + Math.random() * 0.5) * dur / n;
+      const f = hz(notes[k]), vel = 0.1 * (0.6 + Math.random() * 0.4);
+      const pan = ctx.createStereoPanner(); pan.pan.value = (Math.random() * 2 - 1) * 0.65;
+      const g = this.G(0);
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(vel, at + 0.012);
+      g.gain.setTargetAtTime(0, at + 0.012, 1.1);
+      g.connect(pan); pan.connect(this.pulseOut);
+      for (const [mult, a, decay] of [[1, 1, 1], [2.756, 0.14, 0.35], [2, 0.18, 0.6]]) {
+        const o = ctx.createOscillator(), og = this.G(a);
+        o.frequency.value = f * mult;
+        og.gain.setValueAtTime(a, at); og.gain.setTargetAtTime(0, at, 1.1 * decay);
+        o.connect(og); og.connect(g);
+        o.start(at); o.stop(at + 7);
+      }
+      setTimeout(() => pan.disconnect(), (at + 7.5 - ctx.currentTime) * 1000);
+    }
+  }
+
+  // One breath cycle as automation curves on the pad and noise; returns its length.
+  scheduleBreath(t) {
+    const key = S.breath.pattern, p = (BREATH[key] || BREATH.coherent).p;
+    const len = p.reduce((a, b) => a + b, 0);
+    this.breaths.push({ t, len, p, key });
+    const padDepth = key === 'off' ? 0 : S.breath.depth * 0.55;
+    const noiseDepth = S.noise.type === 'ocean' ? 0.85 : (key === 'off' ? 0 : S.breath.depth * 0.35);
+    const N = Math.max(2, Math.round(len * 20));
+    const padC = new Float32Array(N), noiseC = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const env = breathEnv(p, (i / (N - 1)) * len).env;
+      padC[i] = 1 - padDepth + padDepth * env;
+      noiseC[i] = 1 - noiseDepth + noiseDepth * env;
+    }
+    try {
+      this.padBreath.gain.setValueCurveAtTime(padC, t, len);
+      this.noiseBreath.gain.setValueCurveAtTime(noiseC, t, len);
+    } catch (e) { /* overlapping automation after a settings change; skip this cycle */ }
+    return len;
+  }
+
+  live(path) {
+    if (!this.playing) return;
+    const now = this.ctx.currentTime, set = (param, v) => param.setTargetAtTime(v, now, 0.25);
+    switch (path) {
+      case 'drone.vol': set(this.padOut.gain, S.drone.vol); break;
+      case 'drone.bass': set(this.bassOut.gain, S.drone.bass); break;
+      case 'drone.bright': set(this.padLP.frequency, brightHz(S.drone.bright)); break;
+      case 'pulse.vol': set(this.pulseOut.gain, S.pulse.vol); break;
+      case 'space': set(this.wet.gain, S.space * 0.9); break;
+      case 'beats.vol': set(this.beatOut.gain, S.beats.vol * 0.16); break;
+      case 'noise.vol': set(this.noiseOut.gain, S.noise.vol * 1.6); break;
+      case 'noise.type': this.setNoise(S.noise.type, now); break;
+      case 'sleep.warmth': set(this.warmth.frequency, warmthHz(S.sleep.warmth)); break;
+      case 'beats.carrier': {
+        const ev = this.current();
+        if (S.beats.carrier === 'om' || !ev) this.carrier = 136.1;
+        else { let cm = ev.root + 48; while (cm < 45) cm += 12; while (cm > 56) cm -= 12; this.carrier = hz(cm); }
+        this.oscL.frequency.setTargetAtTime(this.carrier, now, 1.5);
+        this.oscR.frequency.setTargetAtTime(this.carrier + this.lastBeat, now, 1.5);
+        break;
+      }
+    }
+  }
+
+  current() {
+    if (!this.ctx) return null;
+    const now = this.ctx.currentTime;
+    let cur = null;
+    for (const e of this.events) if (e.t <= now) cur = e;
+    return cur;
+  }
+  breathNow() {
+    if (!this.ctx) return null;
+    const now = this.ctx.currentTime;
+    for (let i = this.breaths.length - 1; i >= 0; i--) {
+      const b = this.breaths[i];
+      if (b.t <= now) return { ...breathEnv(b.p, now - b.t), key: b.key };
+    }
+    return null;
+  }
+
+  stop(fade = 1.5) {
+    if (!this.ctx) return;
+    const ctx = this.ctx, now = ctx.currentTime;
+    clearInterval(this.timer);
+    this.playing = false; this.fading = false;
+    this.out.gain.cancelScheduledValues(now);
+    this.out.gain.setValueAtTime(this.out.gain.value, now);
+    this.out.gain.linearRampToValueAtTime(0, now + fade);
+    this.ctx = null;
+    setTimeout(() => ctx.close().catch(() => {}), fade * 1000 + 200);
+  }
+}
+
+function breathEnv(p, t) {
+  const [a, b, c] = p;
+  if (t < a) return { env: ease(t / a), phase: 0, frac: t / a };
+  if (t < a + b) return { env: 1, phase: 1, frac: (t - a) / b };
+  if (t < a + b + c) return { env: 1 - ease((t - a - b) / c), phase: 2, frac: (t - a - b) / c };
+  return { env: 0, phase: 3, frac: 1 };
+}
+
+/* =========================================================
+   App state
+   ========================================================= */
+const engine = new Engine();
+function parseSeed() {
+  const m = location.hash.match(/j=(\d+)/);
+  return m ? +m[1] : Math.floor(Math.random() * 99999) + 1;
+}
+let journey = new Journey(parseSeed());
+let ghosts = [];           // past progressions, layered into a mandala
+let lastProgKey = null;
+let wakeLock = null;
+
+function startPlayback() {
+  engine.start(journey);
+  $('playBtn').textContent = 'Pause';
+  $('playBtn').setAttribute('aria-pressed', 'true');
+  $('stagePlay').classList.add('on');
+  $('stagePlay').setAttribute('aria-label', 'Pause');
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: 'Harmonia', artist: 'Circle-of-fifths journey' });
+    navigator.mediaSession.setActionHandler('play', () => !engine.playing && startPlayback());
+    navigator.mediaSession.setActionHandler('pause', () => engine.playing && stopPlayback());
+  }
+}
+function stopPlayback() {
+  engine.stop();
+  // resume at the start of the next progression pass
+  journey.idx = journey.prog ? journey.prog.q.length : 0;
+  $('playBtn').textContent = 'Play';
+  $('playBtn').setAttribute('aria-pressed', 'false');
+  $('stagePlay').classList.remove('on');
+  $('stagePlay').setAttribute('aria-label', 'Play');
+}
+const togglePlay = () => (engine.playing ? stopPlayback() : startPlayback());
+
+function onAudioState(state) {
+  $('resume').hidden = !(engine.playing && state !== 'running' && document.visibilityState === 'visible');
+}
+document.addEventListener('visibilitychange', () => {
+  if (engine.ctx) onAudioState(engine.ctx.state);
+  if (document.visibilityState === 'visible' && document.body.classList.contains('immersed')) requestWake();
+});
+$('resumeBtn').onclick = () => { engine.ctx && engine.ctx.resume(); $('resume').hidden = true; };
+
+function newJourney() {
+  const seed = Math.floor(Math.random() * 99999) + 1;
+  journey = new Journey(seed);
+  if (engine.playing) engine.journey = journey;
+  history.replaceState(null, '', '#j=' + seed);
+  if (S.tab === 'journey') renderPanel();
+}
+
+/* =========================================================
+   Visuals: the color field and the wheel
+   ========================================================= */
+const field = $('field'), fctx = field.getContext('2d');
+const wheel = $('wheel'), wctx = wheel.getContext('2d');
+const immWheel = $('immWheel'), ictx = immWheel.getContext('2d');
+const BLOBS = 4;
+const blobHue = new Array(BLOBS).fill(null);
+const PHI = 1.618033988749895;
+let lastFrame = performance.now();
+
+function sizeCanvas(c, scale = 1) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1) * scale;
+  const w = Math.max(1, Math.round(c.clientWidth * dpr)), h = Math.max(1, Math.round(c.clientHeight * dpr));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+}
+function hueLerp(a, b, k) { const d = ((b - a + 540) % 360) - 180; return norm(a + d * k); }
+
+function visualState() {
+  const ev = (engine.playing && engine.current()) || journey.preview();
+  const br = engine.playing ? engine.breathNow() : null;
+  const t = performance.now() / 1000;
+  const breath = br || { env: 0.5 + 0.5 * Math.sin(t * TAU / 13), phase: -1, key: 'off' };
+  return { ev, breath, t, palette: paletteFor(ev) };
+}
+
+function drawField(vs, dt) {
+  sizeCanvas(field, 0.25);
+  const w = field.width, h = field.height, t = vs.t;
+  const tau = Math.max(2, S.cycle * 0.4);
+  const k = 1 - Math.exp(-dt / tau);
+  for (let i = 0; i < BLOBS; i++) {
+    const target = vs.palette[i % vs.palette.length];
+    blobHue[i] = blobHue[i] == null ? target : hueLerp(blobHue[i], target, k);
+  }
+  const guided = vs.breath.key !== 'off';
+  const env = guided ? vs.breath.env : 0.4 * vs.breath.env + 0.3;
+  const minor = /^m/.test(vs.ev.q) ? 0.88 : 1;
+  const glow = S.color.glow * minor * (0.72 + 0.28 * env);
+  const sat = S.color.sat;
+  fctx.globalCompositeOperation = 'source-over';
+  fctx.fillStyle = `hsl(${blobHue[0]}, ${sat * 0.5}%, ${3 + 4 * glow}%)`;
+  fctx.fillRect(0, 0, w, h);
+  fctx.globalCompositeOperation = 'lighter';
+  const M = Math.max(w, h);
+  for (let i = 0; i < BLOBS; i++) {
+    const f1 = 0.011 * Math.pow(PHI, i * 0.5), f2 = 0.013 * Math.pow(PHI, i * 0.37);
+    const x = w * (0.5 + 0.34 * Math.sin(t * f1 + i * 2.39996));
+    const y = h * (0.5 + 0.34 * Math.cos(t * f2 + i * 1.7));
+    const r = M * (0.5 + 0.12 * Math.sin(t * 0.017 + i)) * (0.9 + 0.12 * env);
+    const L = (i === 0 ? 34 : 28) * glow;
+    const g = fctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `hsla(${blobHue[i]}, ${sat}%, ${L}%, 0.55)`);
+    g.addColorStop(0.5, `hsla(${blobHue[i]}, ${sat}%, ${L * 0.7}%, 0.22)`);
+    g.addColorStop(1, `hsla(${blobHue[i]}, ${sat}%, ${L * 0.5}%, 0)`);
+    fctx.fillStyle = g;
+    fctx.fillRect(0, 0, w, h);
+  }
+  fctx.globalCompositeOperation = 'source-over';
+}
+
+function drawWheel(c, ctx, vs, opts = {}) {
+  sizeCanvas(c);
+  const W = c.width, cx = W / 2, cy = W / 2, R = W * 0.38, dpr = W / c.clientWidth || 1;
+  const dim = opts.dim || 1;
+  const rot = -Math.PI / 2 + vs.t * TAU / 900;          // one slow turn every fifteen minutes
+  const ang = pc => rot + wheelPos(pc) * TAU / 12;
+  const pt = (pc, r = R) => [cx + Math.cos(ang(pc)) * r, cy + Math.sin(ang(pc)) * r];
+  const sat = S.color.sat + 10;
+  const env = vs.breath.env;
+  ctx.clearRect(0, 0, W, W);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  // breath halo
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * (1.04 + 0.12 * env), 0, TAU);
+  ctx.strokeStyle = `rgba(255, 236, 220, ${(vs.breath.key !== 'off' ? 0.1 + 0.18 * env : 0.06) * dim})`;
+  ctx.lineWidth = 1.2 * dpr;
+  ctx.stroke();
+  // base ring
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU);
+  ctx.strokeStyle = `rgba(255, 236, 220, ${0.12 * dim})`; ctx.lineWidth = dpr; ctx.stroke();
+
+  const tonic = vs.ev.tonic;
+  const path = vs.ev.prog.q.map(tok => mod(tonic + tok.d));
+  const drawPath = (roots, alpha, width) => {
+    for (let i = 0; i < roots.length; i++) {
+      const a = roots[i], b = roots[(i + 1) % roots.length];
+      if (a === b) continue;
+      const [x1, y1] = pt(a), [x2, y2] = pt(b);
+      const g = ctx.createLinearGradient(x1, y1, x2, y2);
+      g.addColorStop(0, `hsla(${hueOf(a)}, ${sat}%, 66%, ${alpha})`);
+      g.addColorStop(1, `hsla(${hueOf(b)}, ${sat}%, 66%, ${alpha})`);
+      ctx.strokeStyle = g; ctx.lineWidth = width * dpr;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+  };
+  // mandala of past progressions
+  ghosts.forEach((gh, i) => drawPath(gh, (0.05 + 0.1 * (i + 1) / ghosts.length) * dim, 1));
+  // current progression
+  drawPath(path, 0.42 * dim, 1.6);
+
+  // current chord's shape
+  const pcs = chordPcs(vs.ev);
+  const sorted = [...new Set(pcs)].sort((a, b) => wheelPos(a) - wheelPos(b));
+  ctx.beginPath();
+  sorted.forEach((pc, i) => { const [x, y] = pt(pc); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  ctx.closePath();
+  ctx.fillStyle = `hsla(${hueOf(vs.ev.root)}, ${sat}%, 60%, ${(0.08 + 0.08 * env) * dim})`;
+  ctx.fill();
+  ctx.strokeStyle = `hsla(${hueOf(vs.ev.root)}, ${sat}%, 78%, ${0.55 * dim})`;
+  ctx.lineWidth = 1.4 * dpr; ctx.stroke();
+
+  // nodes
+  ctx.font = `${11 * dpr}px -apple-system, system-ui, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let pc = 0; pc < 12; pc++) {
+    const on = pcs.includes(pc), isRoot = pc === vs.ev.root;
+    const [x, y] = pt(pc);
+    const r = (isRoot ? 6 + 2.5 * env : on ? 4.5 : 2.6) * dpr;
+    ctx.save();
+    if (on) { ctx.shadowColor = `hsla(${hueOf(pc)}, 90%, 70%, ${0.9 * dim})`; ctx.shadowBlur = (14 + 10 * env) * dpr; }
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU);
+    ctx.fillStyle = `hsla(${hueOf(pc)}, ${sat}%, ${on ? 72 : 55}%, ${(on ? 0.95 : 0.55) * dim})`;
+    ctx.fill();
+    ctx.restore();
+    if (!opts.noLabels) {
+      const [lx, ly] = pt(pc, R + 18 * dpr);
+      ctx.fillStyle = `rgba(244, 233, 223, ${(on ? 0.85 : 0.35) * dim})`;
+      ctx.fillText(NOTE[pc], lx, ly);
+    }
+  }
+
+  // center: chord name and breath word
+  if (engine.playing || opts.center) {
+    ctx.fillStyle = `rgba(244, 233, 223, ${0.88 * dim})`;
+    ctx.font = `300 ${W * 0.075}px Spectral, Georgia, serif`;
+    ctx.fillText(chordName(vs.ev), cx, cy - (vs.breath.key !== 'off' ? W * 0.02 : 0));
+    if (vs.breath.key !== 'off' && vs.breath.phase >= 0) {
+      ctx.font = `italic 300 ${W * 0.036}px Spectral, Georgia, serif`;
+      const fade = vs.breath.phase === 3 ? 0.35 : 0.65;
+      ctx.fillStyle = `rgba(244, 233, 223, ${fade * dim})`;
+      ctx.fillText(BREATH_WORDS[vs.breath.phase], cx, cy + W * 0.06);
+    }
+  }
+}
+
+function updateNow(vs) {
+  const ev = vs.ev, p = ev.prog;
+  const key = `${p.id}|${ev.tonic}|${ev.pass ?? 0}`;
+  if (key !== lastProgKey) {
+    // a new progression (or key) began: keep the old figure as a ghost
+    if (lastProgKey && engine.playing && ev.fresh) {
+      const [pid, tonic] = lastProgKey.split('|');
+      const old = PROGRESSIONS.find(x => x.id === pid);
+      if (pid !== p.id || +tonic !== ev.tonic) {
+        ghosts.push(old.q.map(tok => mod(+tonic + tok.d)));
+        if (ghosts.length > 14) ghosts.shift();
+      }
+    }
+    lastProgKey = key;
+    $('nowKey').innerHTML = p.name === p.roman ? keyName(ev) : `${keyName(ev)} <i>·</i> ${p.name}`;
+    $('nowRoman').innerHTML = p.romans.map((r, i) => `<span data-i="${i}">${r}</span>`).join(' – ');
+    $('nowSong').textContent = `as in ${p.song}`;
+  }
+  const spans = $('nowRoman').children;
+  for (const s of spans) s.classList.toggle('cur', +s.dataset.i === ev.idx && engine.playing);
+}
+
+function updateClock() {
+  if (!engine.playing) { $('clock').textContent = S.sleep.timer ? `sleep in ${S.sleep.timer} min` : ''; return; }
+  const e = engine.elapsed(), mm = Math.floor(e / 60), ss = Math.floor(e % 60).toString().padStart(2, '0');
+  let s = `${mm}:${ss}`;
+  if (S.sleep.timer) s += ` · ${Math.max(0, Math.ceil(S.sleep.timer - e / 60))} min left`;
+  $('clock').textContent = s;
+}
+
+let swatchKey = '';
+function frame(now) {
+  const dt = Math.min(0.25, (now - lastFrame) / 1000);
+  lastFrame = now;
+  const vs = visualState();
+  drawField(vs, dt);
+  if (document.body.classList.contains('immersed')) {
+    drawWheel(immWheel, ictx, vs, { dim: 0.7, noLabels: true, center: true });
+  } else {
+    drawWheel(wheel, wctx, vs);
+    updateNow(vs);
+    updateClock();
+    if (S.tab === 'color') {
+      const k = vs.palette.map(Math.round).join(',') + S.color.sat;
+      if (k !== swatchKey) { swatchKey = k; renderSwatches(vs.palette); }
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   Panels
+   ========================================================= */
+const FMT = {
+  pct: v => Math.round(v * 100) + '%',
+  sec: v => v + ' s',
+  hz: v => (+v).toFixed(v < 10 ? 2 : 1) + ' Hz',
+  deg: v => Math.round(v) + '°',
+  int: v => Math.round(v) + '%',
+};
+const fmtOf = {};
+function slider(path, label, min, max, step, fmt = 'pct') {
+  fmtOf[path] = FMT[fmt];
+  const v = getPath(path);
+  return `<label class="row"><span class="row-l">${label}</span>
+    <input type="range" data-path="${path}" min="${min}" max="${max}" step="${step}" value="${v}" aria-label="${label}">
+    <span class="row-v" data-out="${path}">${FMT[fmt](v)}</span></label>`;
+}
+function seg(path, label, opts) {
+  const cur = getPath(path);
+  return `<div class="row wide"><span class="row-l">${label}</span><div class="seg" role="group" aria-label="${label}">
+    ${opts.map(([v, l]) => `<button data-path="${path}" data-v='${JSON.stringify(v)}' aria-pressed="${v === cur}">${l}</button>`).join('')}
+  </div></div>`;
+}
+
+const PANELS = {
+  journey: () => `
+    <h2>Journey</h2>
+    <p class="note">The app walks an endless path through these progressions. Each one repeats two or three times, then the key steps around the circle of fifths, or along Coltrane’s major-third triangle, to a new home.</p>
+    ${slider('cycle', 'Per chord', 4, 24, 1, 'sec')}
+    ${seg('rich', 'Chords', [[false, 'Triads'], [true, 'Sevenths']])}
+    ${seg('wander', 'Key changes', [['stay', 'Stay home'], ['fifths', 'By fifths'], ['coltrane', 'Coltrane']])}
+    ${seg('tuning', 'Tuning', [[440, 'A = 440'], [432, 'A = 432']])}
+    <h2>Progressions</h2>
+    <ul class="pool">${PROGRESSIONS.map(p => `<li><label><input type="checkbox" data-pool="${p.id}" ${S.pool[p.id] ? 'checked' : ''}>
+      <span><b>${p.name}</b><small>${p.roman} · ${p.song}</small></span></label></li>`).join('')}</ul>
+    <div class="share"><span>Journey #${journey.seed}</span><button id="copyLink">Copy link to this journey</button></div>`,
+  sound: () => `
+    <h2>Drone</h2>
+    ${slider('drone.vol', 'Pad', 0, 1, 0.01)}
+    ${slider('drone.bass', 'Bass', 0, 1, 0.01)}
+    ${slider('drone.bright', 'Brightness', 0, 1, 0.01)}
+    <h2>Bells</h2>
+    ${slider('pulse.vol', 'Level', 0, 1, 0.01)}
+    ${slider('pulse.density', 'Density', 0, 1, 0.01)}
+    <h2>Space</h2>
+    ${slider('space', 'Reverb', 0, 1, 0.01)}`,
+  beats: () => `
+    <h2>Binaural beats</h2>
+    <p class="note">Each ear gets a slightly different tone. The brain hears the difference as a slow pulse, which may help it settle toward that rhythm. Headphones are required.</p>
+    ${slider('beats.vol', 'Level', 0, 1, 0.01)}
+    ${seg('beats.state', 'State', Object.entries(BEAT_STATES).map(([k, b]) => [k, `${b.sym} ${b.name}`]))}
+    ${slider('beats.hz', 'Beat', 1, 14, 0.01, 'hz')}
+    <p class="note" id="beatTip">${(BEAT_STATES[S.beats.state] || {}).tip || 'Custom frequency'}</p>
+    ${seg('beats.descend', 'Descend', [[false, 'Hold steady'], [true, 'Drift down from alpha']])}
+    ${seg('beats.carrier', 'Carrier', [['chord', 'Follows the chord'], ['om', 'Om · 136.1 Hz']])}`,
+  noise: () => `
+    <h2>Noise</h2>
+    ${slider('noise.vol', 'Level', 0, 1, 0.01)}
+    ${seg('noise.type', 'Texture', [['brown', 'Brown'], ['pink', 'Pink'], ['ocean', 'Ocean']])}
+    <p class="note">Ocean noise swells and recedes with your breath.</p>`,
+  color: () => `
+    <h2>Color</h2>
+    <p class="note">Every note has a hue. Each chord becomes a constellation on the color wheel, and the colors drift slowly from chord to chord.</p>
+    <div class="swatches" id="swatches"></div>
+    ${seg('color.harmony', 'Harmony', Object.entries(HARMONIES).map(([k, h]) => [k, h.name]))}
+    ${seg('color.map', 'Notes to hues', [['fifths', 'Circle of fifths'], ['chromatic', 'Chromatic']])}
+    ${slider('color.shift', 'Rotate hues', 0, 359, 1, 'deg')}
+    ${slider('color.sat', 'Saturation', 10, 90, 1, 'int')}
+    ${slider('color.glow', 'Glow', 0.1, 1.4, 0.01)}`,
+  sleep: () => `
+    <h2>Breath</h2>
+    <p class="note">The drone swells as you breathe in and softens as you breathe out. Follow the ring around the circle.</p>
+    ${seg('breath.pattern', 'Pattern', Object.entries(BREATH).map(([k, b]) => [k, b.name]))}
+    ${slider('breath.depth', 'Swell', 0, 1, 0.01)}
+    <h2>Sleep</h2>
+    ${seg('sleep.timer', 'Timer', [[0, 'Off'], [15, '15 m'], [30, '30 m'], [45, '45 m'], [60, '1 h'], [90, '1½ h']])}
+    ${slider('sleep.warmth', 'Warmth', 0, 1, 0.01)}
+    <p class="note">The sound fades out over the final minute. Warmth rolls off the highs.</p>`,
+};
+
+function renderPanel() {
+  $('panel').innerHTML = PANELS[S.tab]();
+  for (const t of document.querySelectorAll('.tab')) t.setAttribute('aria-selected', t.dataset.tab === S.tab);
+  swatchKey = '';
+  const copy = $('copyLink');
+  if (copy) copy.onclick = () => {
+    const url = location.origin + location.pathname + '#j=' + journey.seed;
+    history.replaceState(null, '', '#j=' + journey.seed);
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(
+      () => (copy.textContent = 'Copied'), () => (copy.textContent = url));
+  };
+}
+function renderSwatches(pal) {
+  const el = $('swatches');
+  if (!el) return;
+  el.innerHTML = pal.map(h => `<div class="sw" style="background:hsl(${h}, ${S.color.sat}%, 62%)"><span>${colorName(h)}</span></div>`).join('');
+}
+
+function changed(path) {
+  save();
+  engine.live(path);
+  renderChips();
+  if (path === 'beats.state') {
+    S.beats.hz = BEAT_STATES[S.beats.state].hz; save();
+    engine.live('beats.hz');
+    renderPanel();
+  }
+  if (path === 'beats.hz') {
+    const match = Object.entries(BEAT_STATES).find(([, b]) => Math.abs(b.hz - S.beats.hz) < 0.005);
+    S.beats.state = match ? match[0] : 'custom'; save();
+    for (const b of document.querySelectorAll('[data-path="beats.state"]')) b.setAttribute('aria-pressed', JSON.parse(b.dataset.v) === S.beats.state);
+    const tip = $('beatTip'); if (tip) tip.textContent = match ? match[1].tip : 'Custom frequency';
+  }
+}
+
+$('panel').addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.path) {
+    setPath(el.dataset.path, +el.value);
+    const out = document.querySelector(`[data-out="${el.dataset.path}"]`);
+    if (out) out.textContent = fmtOf[el.dataset.path](+el.value);
+    changed(el.dataset.path);
+  } else if (el.dataset.pool) {
+    S.pool[el.dataset.pool] = el.checked;
+    save();
+  }
+});
+$('panel').addEventListener('click', e => {
+  const b = e.target.closest('.seg button');
+  if (!b) return;
+  setPath(b.dataset.path, JSON.parse(b.dataset.v));
+  for (const x of b.parentElement.children) x.setAttribute('aria-pressed', x === b);
+  changed(b.dataset.path);
+});
+$('tabs').addEventListener('click', e => {
+  const t = e.target.closest('.tab');
+  if (!t) return;
+  S.tab = t.dataset.tab; save();
+  renderPanel();
+});
+
+/* =========================================================
+   Chips: quick toggles
+   ========================================================= */
+const CYCLES = [6, 8, 10, 14, 20];
+function renderChips() {
+  $('c-cycle').textContent = S.cycle + 's';
+  const b = BEAT_STATES[S.beats.state];
+  $('c-beats').textContent = S.beats.vol === 0 ? 'off' : b ? `${b.sym} ${b.hz}` : `${S.beats.hz.toFixed(1)}`;
+  $('c-breath').textContent = BREATH[S.breath.pattern].name;
+  $('c-colors').textContent = HARMONIES[S.color.harmony].short;
+}
+const cycleNext = (list, cur) => list[(list.indexOf(cur) + 1) % list.length];
+$('chips').addEventListener('click', e => {
+  const c = e.target.closest('.chip');
+  if (!c) return;
+  const kind = c.dataset.chip;
+  if (kind === 'cycle') { S.cycle = cycleNext(CYCLES, S.cycle) ?? 10; changed('cycle'); }
+  if (kind === 'beats') {
+    const order = ['theta', 'delta', 'schumann', 'alpha', 'off'];
+    const cur = S.beats.vol === 0 ? 'off' : S.beats.state;
+    const next = cycleNext(order, cur) ?? 'theta';
+    if (next === 'off') { S.beats._vol = S.beats.vol; S.beats.vol = 0; changed('beats.vol'); }
+    else {
+      if (S.beats.vol === 0) { S.beats.vol = S.beats._vol || 0.5; changed('beats.vol'); }
+      S.beats.state = next; changed('beats.state');
+    }
+  }
+  if (kind === 'breath') { S.breath.pattern = cycleNext(Object.keys(BREATH), S.breath.pattern); changed('breath.pattern'); }
+  if (kind === 'colors') { S.color.harmony = cycleNext(Object.keys(HARMONIES), S.color.harmony); changed('color.harmony'); }
+  renderPanel();
+});
+
+/* =========================================================
+   Immersive mode
+   ========================================================= */
+async function requestWake() {
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { wakeLock = null; }
+}
+let hintTimer = 0;
+function showHint() {
+  $('immHint').style.opacity = 1;
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => ($('immHint').style.opacity = 0), 2500);
+}
+function enterImmerse() {
+  document.body.classList.add('immersed');
+  $('immerse').hidden = false;
+  showHint();
+  requestWake();
+  if (!engine.playing) startPlayback();
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+}
+function exitImmerse() {
+  document.body.classList.remove('immersed');
+  $('immerse').hidden = true;
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+let lastTap = 0;
+$('immerse').addEventListener('click', () => {
+  const now = performance.now();
+  if (now - lastTap < 350) exitImmerse(); else showHint();
+  lastTap = now;
+});
+
+/* =========================================================
+   Wiring
+   ========================================================= */
+$('playBtn').onclick = togglePlay;
+$('stagePlay').onclick = togglePlay;
+$('newBtn').onclick = newJourney;
+$('immerseBtn').onclick = enterImmerse;
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input')) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'n' || e.key === 'N') newJourney();
+  else if (e.key === 'i' || e.key === 'I') document.body.classList.contains('immersed') ? exitImmerse() : enterImmerse();
+  else if (e.key === 'Escape' && document.body.classList.contains('immersed')) exitImmerse();
+});
+window.addEventListener('hashchange', () => {
+  const m = location.hash.match(/j=(\d+)/);
+  if (m && +m[1] !== journey.seed) { journey = new Journey(+m[1]); if (engine.playing) engine.journey = journey; renderPanel(); }
+});
+
+renderChips();
+renderPanel();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
